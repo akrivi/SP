@@ -2,7 +2,7 @@ close all
 clear all
 % setGraphicsDefaults()
 
-%% Numerical Example 3 Buses Without Battery (3x1 Vectors) (Not Realistic - Easier to test)
+%% Numerical Example 3 Buses Without Battery and Single Time (3x1 Vectors) (Not Realistic - Easier to test)
 
 profile on 
 
@@ -125,8 +125,8 @@ DeltaT = 1;
 eta = 0.2;
 a_b = 0.5;
 
-p_load = [0 0 0 0 0 0 0 0 0 0 0 0; 1 5 3 14 18 26 35 24 22 25 32 12; 10 12 17 24 25 30 32 42 45 38 35 32;];
-q_load = 0.1*[0 0 0 0 0 0 0 0 0 0 0 0; 1 5 3 14 18 26 35 24 22 25 32 12; 10 12 17 24 25 30 32 42 45 38 35 32;];
+p_load = [0 0 0 0 0 0 0 0 0 0 0 0; 1 5 3 14 18 26 35 24 22 25 32 12; 10 12 17 24 25 30 32 42 45 38 35 32;]; %random load power variations
+q_load = 0.1*[0 0 0 0 0 0 0 0 0 0 0 0; 1 5 3 14 18 26 35 24 22 25 32 12; 10 12 17 24 25 30 32 42 45 38 35 32;]; %random load power variations
 
 P_inj = sdpvar(3,TimeInterval,'full','real'); % P injected vector for all buses
 Q_inj = sdpvar(3,TimeInterval,'full','real'); % Q injected vector for all buses
@@ -214,7 +214,7 @@ for it = 1: TimeInterval
     Q_contstraint1 = (Q_inj(:,it)) - ((Gamma_imag+Ksi_imag)*(1-V_real(:,it))+(Gamma_real+Ksi_real)*(1-V_imag(:,it))-Pi_imag+(q_load(:,it))) == 0;
     % Q_contstraint2 = Q_inj - (Gamma_imag+Ksi_imag)*DeltaV_real+(Gamma_real+Ksi_real)*DeltaV_imag-Pi_imag >= 0;
     
-    VComplex = V_totComplex - V_real - i*V_imag == 0; %Assuming No DV in this example
+    VComplex = V_totComplex - V_real - i*V_imag == 0; %essentially defining V_totComplex (equal to real and imag part)
     VatPCC = V_totComplex(1,:) - ones(1,12) - i*0 ==0; %Voltage at slack bus considered 1
     
     temp1 = V_totComplex(:,it);
@@ -234,7 +234,7 @@ for it = 1: TimeInterval
 
 end
 
-%Battery (Written Very Inefficiently TODO: IMPROVE!!!)
+%Battery (!!!Written Very Inefficiently. TODO: replace with for loop)
 SoE_constraint1 = SoE(:,2) == SoE(:,1) + (eta*p_bat_plus(:,1) - (1/eta)*p_bat_minus(:,1))*DeltaT;
 SoE_constraint2 =SoE(:,3) == SoE(:,2) + (eta*p_bat_plus(:,2) - (1/eta)*p_bat_minus(:,2))*DeltaT;
 SoE_constraint3 =SoE(:,4) == SoE(:,3) + (eta*p_bat_plus(:,3) - (1/eta)*p_bat_minus(:,3))*DeltaT;
@@ -247,15 +247,16 @@ SoE_constraint9 =SoE(:,10) == SoE(:,9) + (eta*p_bat_plus(:,9) - (1/eta)*p_bat_mi
 SoE_constraint10 =SoE(:,11) == SoE(:,10) + (eta*p_bat_plus(:,10) - (1/eta)*p_bat_minus(:,10))*DeltaT;
 SoE_constraint11 =SoE(:,12) == SoE(:,11) + (eta*p_bat_plus(:,11) - (1/eta)*p_bat_minus(:,11))*DeltaT;
 
-NoPBatInjPCC = p_bat(3,:) == 0; %no P battery injection at first bus (PCC)
-NoQBatInjPCC = q_bat(3,:) == 0; %no Q battery injection at first bus (PCC)
-NoPBatInjPCCplus = p_bat_plus(3,:) == 0; 
-NoPBatInjPCCminus = p_bat_minus(3,:) == 0; 
-% NoPBatInjPCC3 = p_bat(3,:) == 0; %no P battery injection at bus 3
-% NoQBatInjPCC3 = q_bat(3,:) == 0; %no Q battery injection at bus 3
+%Consider battery is connected only at node 2 so we set power from bat at nodes 1 and 3 to zero 
+NoPBatInjPCC = p_bat(1,:) == 0; %no P battery injection at first bus (PCC)
+NoQBatInjPCC = q_bat(1,:) == 0; %no Q battery injection at first bus (PCC)
+NoPBatInjPCCplus = p_bat_plus(1,:) == 0; 
+NoPBatInjPCCminus = p_bat_minus(1,:) == 0; 
+NoQBatInjPCC3 = q_bat(3,:) == 0; %no Q battery injection at bus 3
+NoPBatInjPCCplus3 = p_bat_plus(3,:) == 0; 
+NoPBatInjPCCminus3 = p_bat_minus(3,:) == 0; 
 
-%loop to create constraints for each time ("for every bus" doesnt need a loop since implemented as rows of V matrix)
-
+%Loop to create constraints for each time ("for every bus" doesn't need a loop since implemented as rows of V matrix)
 for it = 1: TimeInterval
     
     SoEbound1max = SoE(:,it)<= (1-a_b)*SoEmax(:,it); 
@@ -266,7 +267,7 @@ for it = 1: TimeInterval
     Eq16_constraint = - E_bmax(:,it) - SoE(:,it) <= E_b(:,it);
     
     ConstraintsNew = [ConstraintsNew; SoEbound1max; SoEbound1min; Eq13_constraint; Eq14_constraint; Eq15_constraint; Eq16_constraint; NoPBatInjPCC; NoQBatInjPCC;
-        NoPBatInjPCCplus; NoPBatInjPCCminus];
+        NoPBatInjPCCplus; NoPBatInjPCCminus; NoQBatInjPCC3; NoPBatInjPCCplus3; NoPBatInjPCCminus3];
     
 end
 
@@ -319,7 +320,7 @@ w3 = 1;
 w4 = 1;
 w5 = 1;
 
-%Objective Function
+%Define Objective Function 
 % Objective = abs(sum(P_inj(1,:)))+abs(sum(Q_inj(1,:)))+sum(P_inj(1,:)) + sum(sum(E_b));
 Objective = w3*abs(sum(P_inj(1,:))) + w2*abs(sum(Q_inj(1,:))) + w4*sum(P_inj(1,:)) + w1*sum(sum(E_b)) + w5*(sum(P_inj(1,:))-sum(P_dp(1,:)))^2 + w5*(sum(Q_inj(1,:))-sum(Q_dp(1,:)))^2;
 
