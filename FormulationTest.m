@@ -2,7 +2,7 @@ close all
 clear all
 % setGraphicsDefaults()
 
-%% Numerical Example 3 Buses Without Battery and Single Time (3x1 Vectors) (Not Realistic - Easier to test)
+%% Numerical Example 3 Buses Without Battery and Single Time (3x1 Vectors) (Not Realistic - Easier to test)(Non-Linear Term Ignored so results not 100% accurate)
 
 profile on 
 
@@ -209,7 +209,7 @@ for it = 1: TimeInterval
     Pi_imag = -diag((V_imag(:,it)))*alpha - diag((V_real(:,it)))*beta;
     
     %Power Constraints
-    P_contstraint1 = (P_inj(:,it)) - ((Gamma_real+Ksi_real)*(1-V_real(:,it))+(-Gamma_imag+Ksi_imag)*(1-V_imag(:,it))-Pi_real+(p_load(:,it))) == 0;
+    P_contstraint1 = (P_inj(:,it)) - ((Gamma_real+Ksi_real)*(1-V_real(:,it))+(-Gamma_imag+Ksi_imag)*(1-V_imag(:,it))-Pi_real+(p_load(:,it))- p_bat_plus(:,it) + p_bat_minus(:,it)) == 0; 
     % P_contstraint2 = P_inj - (Gamma_real+Ksi_real)*DeltaV_real+(-Gamma_imag+Ksi_imag)*DeltaV_imag-Pi_real >= 0;
     Q_contstraint1 = (Q_inj(:,it)) - ((Gamma_imag+Ksi_imag)*(1-V_real(:,it))+(Gamma_real+Ksi_real)*(1-V_imag(:,it))-Pi_imag+(q_load(:,it))) == 0;
     % Q_contstraint2 = Q_inj - (Gamma_imag+Ksi_imag)*DeltaV_real+(Gamma_real+Ksi_real)*DeltaV_imag-Pi_imag >= 0;
@@ -450,8 +450,8 @@ for it = 1: TimeInterval
     m = B;
     g=G;
     
-    P_contstraint1 = (P_inj(:,it)) - (a*g*c - a*m*d + b*m*c + b*g*d) == 0;
-    Q_contstraint1 = (Q_inj(:,it)) -(b*(g*c - m*d) - a*(m*c + g*d)) == 0;
+    P_contstraint1 = (P_inj(:,it)) - (a*g*c - a*m*d + b*m*c + b*g*d + (p_load(:,it)) - p_bat_plus(:,it) + p_bat_minus(:,it)) == 0;
+    Q_contstraint1 = (Q_inj(:,it)) -(b*(g*c - m*d) - a*(m*c + g*d)+(q_load(:,it))) == 0;
     
     VComplex = V_totComplex - V_real - i*V_imag == 0; %essentially defining V_totComplex (equal to real and imag part)
     VatPCC = V_totComplex(1,:) - ones(1,12) - i*0 ==0; %Voltage at slack bus considered 1
