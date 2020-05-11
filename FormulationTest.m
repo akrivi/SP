@@ -504,9 +504,10 @@ for it = 1: TimeInterval
     Eq14_constraint = E_bmin(:,it) - SoE(:,it) <= E_b(:,it);
     Eq15_constraint = 0 <= E_b(:,it);
     Eq16_constraint = - E_bmax(:,it) - SoE(:,it) <= E_b(:,it);
+    CannotChargeAndDischargeDezelfde = p_bat_minus(2,it)*p_bat_plus(2,it) == 0;
     
     ConstraintsNew = [ConstraintsNew; SoEbound1max; SoEbound1min; Eq13_constraint; Eq14_constraint; Eq15_constraint; Eq16_constraint; NoPBatInjPCC; NoQBatInjPCC;
-        NoPBatInjPCCplus; NoPBatInjPCCminus; NoQBatInjPCC3; NoPBatInjPCCplus3; NoPBatInjPCCminus3];
+        NoPBatInjPCCplus; NoPBatInjPCCminus; NoQBatInjPCC3; NoPBatInjPCCplus3; NoPBatInjPCCminus3; CannotChargeAndDischargeDezelfde];
     
 end
 
@@ -638,7 +639,7 @@ ylabel('P [V]')
 %Plot P_bat_plus at each bus
 figure 
 for i = 1:size(p_load,1)
-    plot(timeTotal, value(p_bat_plus(i,:)))
+    plot(timeTotal, value(p_bat_plus(i,:)),'-x')
     hold on
     grid on
 end
@@ -650,7 +651,7 @@ ylabel('P_{bat plus} [V]')
 %Plot P_bat_minus at each bus
 figure 
 for i = 1:size(p_load,1)
-    plot(timeTotal, value(p_bat_minus(i,:)))
+    plot(timeTotal, value(p_bat_minus(i,:)),'-x')
     hold on
     grid on
 end
@@ -658,3 +659,10 @@ end
 legend('PCC','Bus 2','Bus 3')
 xlabel('Time [h]')
 ylabel('P_{bat minus} [V]')
+
+% figure 
+% for i = 1:size(p_load,1)
+%     plot(timeTotal, value(SoE(i,:)))
+%     hold on
+%     grid on
+% end
